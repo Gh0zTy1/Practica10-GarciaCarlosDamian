@@ -1,9 +1,9 @@
 package garcia.carlosdamian.practica10_garciacarlosdamian
+
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -18,13 +18,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var sharedPreferences: SharedPreferences
+    private val RC_SIGN_IN = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         sharedPreferences = getSharedPreferences("user_session", Context.MODE_PRIVATE)
 
-        // Verificar si el usuario ya está logueado
+        // Si el usuario ya inició sesión, ir directamente a la pantalla de bienvenida
         if (isUserLoggedIn()) {
             goToWelcomeActivity()
             return
@@ -40,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupGoogleSignIn() {
+        // Configura Google Sign-In para solicitar el email del usuario
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .build()
@@ -58,7 +60,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, 100)
+        startActivityForResult(signInIntent, RC_SIGN_IN)
     }
 
     private fun loginWithEmailPassword() {
@@ -66,17 +68,18 @@ class MainActivity : AppCompatActivity() {
         val password = findViewById<EditText>(R.id.etPassword).text.toString()
 
         if (email.isNotEmpty() && password.isNotEmpty()) {
-            saveUserSession(email, "Email")
-            goToWelcomeActivity(email, "Email")
+            // Lógica de autenticación local (simulada)
+            saveUserSession(email, "Email/Password")
+            goToWelcomeActivity(email, "Email/Password")
         } else {
-            Toast.makeText(this, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == 100) {
+        if (requestCode == RC_SIGN_IN) {
             handleGoogleSignInResult(data)
         }
     }
@@ -86,17 +89,14 @@ class MainActivity : AppCompatActivity() {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             val account = task.getResult(ApiException::class.java)
 
-            val email = account.email ?: "No email"
+            val email = account.email ?: "No disponible"
             val provider = "Google"
 
-            // Guardar sesión
             saveUserSession(email, provider)
-
-            // Ir a la pantalla principal
             goToWelcomeActivity(email, provider)
 
         } catch (e: ApiException) {
-            Toast.makeText(this, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error al iniciar sesión con Google: ${e.statusCode}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -105,31 +105,29 @@ class MainActivity : AppCompatActivity() {
             putBoolean("is_logged_in", true)
             putString("user_email", email)
             putString("user_provider", provider)
-            putLong("login_timestamp", System.currentTimeMillis())
             apply()
         }
     }
 
     private fun goToWelcomeActivity(email: String? = null, provider: String? = null) {
-        val userEmail = email ?: sharedPreferences.getString("user_email", "")
-        val userProvider = provider ?: sharedPreferences.getString("user_provider", "")
-
         val intent = Intent(this, WelcomeActivity::class.java).apply {
-            putExtra("mail", userEmail)
-            putExtra("provider", userProvider)
+            // Si no se pasan los datos, se obtendrán de SharedPreferences en WelcomeActivity
+            email?.let { putExtra("mail", it) }
+            provider?.let { putExtra("provider", it) }
         }
         startActivity(intent)
-        finish()
+        finish() // Finaliza MainActivity para que el usuario no pueda volver con el botón "Atrás"
     }
 
     override fun onStart() {
         super.onStart()
-        // Verificar cuenta de Google existente
+        // Comprobar si el usuario ya ha iniciado sesión en este dispositivo con Google
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account != null && !isUserLoggedIn()) {
-            saveUserSession(account.email ?: "", "Google")
-            goToWelcomeActivity()
+            // Si hay una cuenta de Google pero no una sesión activa, iniciar sesión automáticamente
+            val email = account.email ?: "No disponible"
+            saveUserSession(email, "Google")
+            goToWelcomeActivity(email, "Google")
         }
     }
-
 }

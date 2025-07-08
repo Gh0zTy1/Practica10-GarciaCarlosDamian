@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    // Aplicar el plugin de Google Services
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -27,21 +29,23 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
 }
 
-
 dependencies {
 
-    //Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-    //Google
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    // Firebase - Asegúrate de que la BoM (Bill of Materials) esté aquí
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+    // Dependencia para la autenticación de Firebase
+    implementation("com.google.firebase:firebase-auth")
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
